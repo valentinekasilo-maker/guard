@@ -92,30 +92,19 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Configure Web Interface Port to 8080 (both IPv4 and IPv6) with graceful binding flag
-pihole-FTL --config webserver.port "8080o,[::]:8080o" || true
+# Configure Web Interface Ports: 8080, 8088, 4865 (IPv4 and IPv6) with graceful binding
+pihole-FTL --config webserver.port "8080o,8088o,4865o,[::]:8080o,[::]:8088o,[::]:4865o" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
 pihole-FTL --config webserver.paths.webhome "/admin/" || true
 pihole-FTL --config webserver.serve_all true || true
 pihole-FTL --config webserver.acl "" || true
 
-# Configure Allowed Hosts for Webserver and API to allow access via any local domain/IP
-ALLOWED_HOSTS="[\"localhost\", \"127.0.0.1\", \"homeassistant.local\", \"homeassistant\", \"vanc.win\""
-if [ -n "${DOMAIN}" ] && [ "${DOMAIN}" != "vanc.win" ]; then
-    ALLOWED_HOSTS="${ALLOWED_HOSTS}, \"${DOMAIN}\""
-fi
-ALLOWED_HOSTS="${ALLOWED_HOSTS}]"
-
-echo "[INFO] Configuring allowed hosts: ${ALLOWED_HOSTS}"
-pihole-FTL --config webserver.api.allowedHosts "${ALLOWED_HOSTS}" || true
-
-# Set webserver domain to allow Host header matching (e.g. vanc.win)
+# Set webserver domain if user specified one in add-on options
 if [ -n "${DOMAIN}" ]; then
     echo "[INFO] Configuring webserver domain: ${DOMAIN}"
     pihole-FTL --config webserver.domain "${DOMAIN}" || true
 else
-    echo "[INFO] Configuring default webserver domain: vanc.win"
-    pihole-FTL --config webserver.domain "vanc.win" || true
+    echo "[INFO] Retaining default webserver domain (pi.hole and local interface match)"
 fi
 
 # Initialize Gravity database if missing

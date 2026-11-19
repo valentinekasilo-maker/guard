@@ -75,6 +75,6 @@ RUN set -ex; \
 COPY rootfs/run.sh /run.sh
 RUN chmod +x /run.sh
 
-EXPOSE 53/tcp 53/udp 8080/tcp
+EXPOSE 53/tcp 53/udp 8080/tcp 8088/tcp 4865/tcp
 
 ENTRYPOINT ["/run.sh"]
