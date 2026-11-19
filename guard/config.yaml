@@ -20,7 +20,7 @@ ports_description:
   53/tcp: "DNS TCP port"
   53/udp: "DNS UDP port"
   80/tcp: "Web administration interface"
-webui: "http://[HOST]:8080/admin/"
+webui: "http://[HOST]:[PORT:80]/admin/"
 schema:
   password: str?
   upstream_dns: str?
