@@ -26,10 +26,28 @@ cat << 'EOF' > /var/www/html/index.html
 EOF
 
 if [ ! -d "/var/www/html/admin" ] || [ ! -f "/var/www/html/admin/index.lp" ]; then
-    echo "[INFO] Fetching Pi-hole web interface assets..."
-    git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin 2>/dev/null || true
-    cp -rn /var/www/html/admin/* /var/www/html/ 2>/dev/null || true
+    echo "[INFO] Deploying Pi-hole web interface assets..."
+    mkdir -p /var/www/html/admin
+    if [ -d "/etc/.pihole/web" ]; then
+        cp -r /etc/.pihole/web/* /var/www/html/admin/
+        cp -r /etc/.pihole/web/* /var/www/html/
+    else
+        git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin 2>/dev/null || true
+        cp -rn /var/www/html/admin/* /var/www/html/ 2>/dev/null || true
+    fi
 fi
+cat << 'EOF' > /var/www/html/admin/index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="refresh" content="0; url=index.lp">
+  <script>window.location.replace("index.lp");</script>
+</head>
+<body>
+  <p>Loading <a href="index.lp">Pi-hole Admin</a>...</p>
+</body>
+</html>
+EOF
 chown -R pihole:pihole /var/www 2>/dev/null || true
 chmod -R 0755 /var/www 2>/dev/null || true
 
@@ -40,10 +58,12 @@ cd /etc/pihole
 OPTIONS_FILE="/data/options.json"
 PASSWORD=""
 UPSTREAM_DNS=""
+DOMAIN=""
 
 if [ -f "${OPTIONS_FILE}" ]; then
     PASSWORD=$(jq -r '.password // empty' "${OPTIONS_FILE}")
     UPSTREAM_DNS=$(jq -r '.upstream_dns // empty' "${OPTIONS_FILE}")
+    DOMAIN=$(jq -r '.domain // empty' "${OPTIONS_FILE}")
 fi
 
 # Configure dnsmasq to bind only physical network interfaces and skip loopback (lo)
@@ -104,7 +124,18 @@ fi
 # Configure Web Interface Port to 8080 (both IPv4 and IPv6) with graceful binding flag
 pihole-FTL --config webserver.port "8080o,[::]:8080o" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
-pihole-FTL --config webserver.paths.webhome "/admin" || true
+pihole-FTL --config webserver.paths.webhome "/admin/" || true
+pihole-FTL --config webserver.serve_all true || true
+pihole-FTL --config webserver.acl "" || true
+
+# Set webserver domain to allow Host header matching (e.g. vanc.win)
+if [ -n "${DOMAIN}" ]; then
+    echo "[INFO] Configuring webserver domain: ${DOMAIN}"
+    pihole-FTL --config webserver.domain "${DOMAIN}" || true
+else
+    echo "[INFO] Configuring default webserver domain: vanc.win"
+    pihole-FTL --config webserver.domain "vanc.win" || true
+fi
 
 # Initialize Gravity database if missing
 if [ ! -f "/etc/pihole/gravity.db" ]; then

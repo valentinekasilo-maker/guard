@@ -1,5 +1,5 @@
 name: Guard
-version: "6.6.6"
+version: "6.6.7"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
@@ -27,6 +27,8 @@ webui: "http://[HOST]:[PORT:8080]/admin/"
 schema:
   password: str?
   upstream_dns: str?
+  domain: str?
 options:
   password: ""
   upstream_dns: "1.1.1.1;1.0.0.1"
+  domain: "vanc.win"

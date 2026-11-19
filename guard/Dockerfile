@@ -45,11 +45,14 @@ RUN cp -r /etc/.pihole/advanced/Scripts/* /opt/pihole/ 2>/dev/null || true \
     && ln -sf /opt/pihole/pihole /usr/local/bin/pihole \
     && chmod +x /opt/pihole/* /usr/local/bin/pihole
 
-# Clone official Pi-hole v6 Web Interface assets, mirror to root, and provide root redirect
-RUN git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin \
-    && cp -r /var/www/html/admin/* /var/www/html/ 2>/dev/null || true \
+# Install bundled Pi-hole v6 Web Interface assets into document root and /admin
+RUN mkdir -p /var/www/html/admin \
+    && cp -r /etc/.pihole/web/* /var/www/html/admin/ \
+    && cp -r /etc/.pihole/web/* /var/www/html/ \
     && echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/admin/"><script>window.location.replace("/admin/");</script></head><body><p>Redirecting to <a href="/admin/">Pi-hole Admin</a>...</p></body></html>' > /var/www/html/index.html \
-    && chown -R pihole:pihole /var/www
+    && echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=index.lp"><script>window.location.replace("index.lp");</script></head><body><p>Loading <a href="index.lp">Pi-hole Admin</a>...</p></body></html>' > /var/www/html/admin/index.html \
+    && chown -R pihole:pihole /var/www \
+    && chmod -R 0755 /var/www
 
 # Download target architecture FTL binary
 ARG TARGETARCH
