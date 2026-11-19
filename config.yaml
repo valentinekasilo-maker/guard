@@ -1,0 +1,27 @@
+name: "Guard"
+description: "Network-wide ad and tracker blocking powered by Pi-hole"
+version: "6.6.0"
+slug: "guard"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+startup: services
+boot: auto
+ports:
+  53/tcp: 53
+  53/udp: 53
+  80/tcp: 8080
+ports_description:
+  53/tcp: "DNS TCP port"
+  53/udp: "DNS UDP port"
+  80/tcp: "Web administration interface (HTTP)"
+webui: "http://[HOST]:[PORT:80/tcp]/admin/"
+schema:
+  password: "password?"
+  upstream_dns: "str?"
+options:
+  password: ""
+  upstream_dns: "1.1.1.1;1.0.0.1"
