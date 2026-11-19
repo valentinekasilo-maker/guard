@@ -10,11 +10,26 @@ chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /t
 chmod -R 0775 /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d 2>/dev/null || true
 
 # Ensure Web Interface files exist
+mkdir -p /var/www/html
+cat << 'EOF' > /var/www/html/index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="refresh" content="0; url=/admin/">
+  <script>window.location.replace("/admin/");</script>
+</head>
+<body style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+  <h2>Guard (Pi-hole)</h2>
+  <p>Redirecting to <a href="/admin/">Admin Console</a>...</p>
+</body>
+</html>
+EOF
+
 if [ ! -d "/var/www/html/admin" ] || [ ! -f "/var/www/html/admin/index.lp" ]; then
     echo "[INFO] Fetching Pi-hole web interface assets..."
     git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin 2>/dev/null || true
-    chown -R pihole:pihole /var/www 2>/dev/null || true
 fi
+chown -R pihole:pihole /var/www 2>/dev/null || true
 
 # Always work inside /etc/pihole so relative listsCache paths succeed
 cd /etc/pihole

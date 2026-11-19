@@ -1,5 +1,5 @@
 name: Guard
-version: "6.6.4"
+version: "6.6.5"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
@@ -20,10 +20,8 @@ startup: services
 boot: auto
 init: false
 ports:
-  53/udp: 53
   8080/tcp: 8080
 ports_description:
-  53/udp: "DNS UDP port"
   8080/tcp: "Web administration interface"
 webui: "http://[HOST]:[PORT:8080]/admin/"
 schema:
