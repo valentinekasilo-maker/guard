@@ -1,0 +1,34 @@
+{
+  "name": "Guard",
+  "version": "6.6.0",
+  "slug": "guard",
+  "description": "Network-wide ad and tracker blocking powered by Pi-hole",
+  "arch": [
+    "aarch64",
+    "amd64",
+    "armv7",
+    "armhf"
+  ],
+  "startup": "services",
+  "boot": "auto",
+  "init": false,
+  "ports": {
+    "53/tcp": 53,
+    "53/udp": 53,
+    "80/tcp": 8080
+  },
+  "ports_description": {
+    "53/tcp": "DNS TCP port",
+    "53/udp": "DNS UDP port",
+    "80/tcp": "Web administration interface (HTTP)"
+  },
+  "webui": "http://[HOST]:[PORT:80/tcp]/admin/",
+  "schema": {
+    "password": "str?",
+    "upstream_dns": "str?"
+  },
+  "options": {
+    "password": "",
+    "upstream_dns": "1.1.1.1;1.0.0.1"
+  }
+}
