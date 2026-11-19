@@ -25,6 +25,7 @@ fi
 # Configure Upstream DNS if provided
 if [ -n "${UPSTREAM_DNS}" ]; then
     echo "[INFO] Configuring upstream DNS: ${UPSTREAM_DNS}"
+    # Convert semicolon or comma separated list to JSON array
     JSON_UPSTREAMS=$(echo "${UPSTREAM_DNS}" | awk -F'[,;]' '{
         printf "["
         for(i=1; i<=NF; i++) {
@@ -48,7 +49,8 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Ensure web server listens on all interfaces inside container
+# Ensure web server listens on port 8080 on all interfaces
+pihole-FTL --config webserver.port 8080 || true
 pihole-FTL --config webserver.interface "" || true
 
 # Initialize Gravity database if missing

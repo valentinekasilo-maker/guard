@@ -1,9 +1,10 @@
 name: Guard
-version: "6.6.0"
+version: "6.6.1"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
 panel_icon: mdi:shield-check
+host_network: true
 arch:
   - aarch64
   - amd64
@@ -13,14 +14,12 @@ startup: services
 boot: auto
 init: false
 ports:
-  53/tcp: 53
   53/udp: 53
-  80/tcp: 8080
+  8080/tcp: 8080
 ports_description:
-  53/tcp: "DNS TCP port"
   53/udp: "DNS UDP port"
-  80/tcp: "Web administration interface"
-webui: "http://[HOST]:[PORT:80]/admin/"
+  8080/tcp: "Web administration interface"
+webui: "http://[HOST]:[PORT:8080]/admin/"
 schema:
   password: str?
   upstream_dns: str?
