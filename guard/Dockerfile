@@ -30,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create pihole system user and skeleton directories
 RUN groupadd -g 999 pihole 2>/dev/null || true \
     && useradd -u 999 -g pihole -d /etc/pihole -s /usr/sbin/nologin pihole 2>/dev/null || true \
-    && mkdir -p /etc/pihole /var/log/pihole /opt/pihole /etc/.pihole /run/pihole /etc/dnsmasq.d \
-    && chown -R pihole:pihole /etc/pihole /var/log/pihole
+    && mkdir -p /etc/pihole /var/log/pihole /opt/pihole /etc/.pihole /run/pihole /etc/dnsmasq.d /var/www/html \
+    && chown -R pihole:pihole /etc/pihole /var/log/pihole /var/www
 
 # Copy source files from the add-on context into /etc/.pihole/
 COPY src/ /etc/.pihole/
@@ -44,6 +44,10 @@ RUN cp -r /etc/.pihole/advanced/Scripts/* /opt/pihole/ 2>/dev/null || true \
     && cp /etc/.pihole/advanced/Templates/pihole-FTL-poststop.sh /opt/pihole/ 2>/dev/null || true \
     && ln -sf /opt/pihole/pihole /usr/local/bin/pihole \
     && chmod +x /opt/pihole/* /usr/local/bin/pihole
+
+# Clone official Pi-hole v6 Web Interface assets
+RUN git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin \
+    && chown -R pihole:pihole /var/www
 
 # Download target architecture FTL binary
 ARG TARGETARCH

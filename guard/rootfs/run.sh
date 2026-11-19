@@ -4,10 +4,17 @@ set -e
 echo "[INFO] Starting Guard (Pi-hole) for Home Assistant..."
 
 # Ensure core directories exist with proper permissions
-mkdir -p /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole
+mkdir -p /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole /var/www/html
 chmod 0777 /tmp/pihole 2>/dev/null || true
-chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole 2>/dev/null || true
+chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole /var/www 2>/dev/null || true
 chmod -R 0775 /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d 2>/dev/null || true
+
+# Ensure Web Interface files exist
+if [ ! -d "/var/www/html/admin" ] || [ ! -f "/var/www/html/admin/index.lp" ]; then
+    echo "[INFO] Fetching Pi-hole web interface assets..."
+    git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin 2>/dev/null || true
+    chown -R pihole:pihole /var/www 2>/dev/null || true
+fi
 
 # Always work inside /etc/pihole so relative listsCache paths succeed
 cd /etc/pihole
@@ -67,8 +74,10 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Configure Web Interface Port to 8080 (both IPv4 and IPv6)
+# Configure Web Interface Port to 8080 (both IPv4 and IPv6) and document root
 pihole-FTL --config webserver.port "8080,[::]:8080" || true
+pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
+pihole-FTL --config webserver.paths.webhome "/admin" || true
 
 # Initialize Gravity database if missing
 if [ ! -f "/etc/pihole/gravity.db" ]; then
