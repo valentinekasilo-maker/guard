@@ -28,8 +28,10 @@ EOF
 if [ ! -d "/var/www/html/admin" ] || [ ! -f "/var/www/html/admin/index.lp" ]; then
     echo "[INFO] Fetching Pi-hole web interface assets..."
     git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin 2>/dev/null || true
+    cp -rn /var/www/html/admin/* /var/www/html/ 2>/dev/null || true
 fi
 chown -R pihole:pihole /var/www 2>/dev/null || true
+chmod -R 0755 /var/www 2>/dev/null || true
 
 # Always work inside /etc/pihole so relative listsCache paths succeed
 cd /etc/pihole
@@ -80,6 +82,16 @@ if [ -n "${UPSTREAM_DNS}" ]; then
     pihole-FTL --config dns.upstreams "${JSON_UPSTREAMS}" || true
 fi
 
+# Enable reading /etc/dnsmasq.d configs and set DNS listening mode to BIND
+pihole-FTL --config misc.etc_dnsmasq_d true || true
+pihole-FTL --config dns.listeningMode "BIND" || true
+
+DEFAULT_IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+if [ -n "${DEFAULT_IFACE}" ]; then
+    echo "[INFO] Binding DNS to primary network interface: ${DEFAULT_IFACE}"
+    pihole-FTL --config dns.interface "${DEFAULT_IFACE}" || true
+fi
+
 # Configure Web Interface Password
 if [ -n "${PASSWORD}" ]; then
     echo "[INFO] Setting custom web administration password..."
@@ -89,8 +101,8 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Configure Web Interface Port to 8080 (both IPv4 and IPv6) and document root
-pihole-FTL --config webserver.port "8080,[::]:8080" || true
+# Configure Web Interface Port to 8080 (both IPv4 and IPv6) with graceful binding flag
+pihole-FTL --config webserver.port "8080o,[::]:8080o" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
 pihole-FTL --config webserver.paths.webhome "/admin" || true
 
@@ -111,6 +123,9 @@ cleanup() {
     exit 0
 }
 trap cleanup SIGTERM SIGINT
+
+# Clean up any stale sockets or PID files
+rm -f /run/pihole-FTL.pid /run/pihole/FTL.sock /dev/shm/FTL-* 2>/dev/null || true
 
 echo "[INFO] Launching pihole-FTL daemon..."
 exec /usr/bin/pihole-FTL -f

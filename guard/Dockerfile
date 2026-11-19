@@ -45,8 +45,9 @@ RUN cp -r /etc/.pihole/advanced/Scripts/* /opt/pihole/ 2>/dev/null || true \
     && ln -sf /opt/pihole/pihole /usr/local/bin/pihole \
     && chmod +x /opt/pihole/* /usr/local/bin/pihole
 
-# Clone official Pi-hole v6 Web Interface assets and provide root redirect
+# Clone official Pi-hole v6 Web Interface assets, mirror to root, and provide root redirect
 RUN git clone --depth=1 https://github.com/pi-hole/web.git /var/www/html/admin \
+    && cp -r /var/www/html/admin/* /var/www/html/ 2>/dev/null || true \
     && echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/admin/"><script>window.location.replace("/admin/");</script></head><body><p>Redirecting to <a href="/admin/">Pi-hole Admin</a>...</p></body></html>' > /var/www/html/index.html \
     && chown -R pihole:pihole /var/www
 
