@@ -49,8 +49,8 @@ RUN cp -r /etc/.pihole/advanced/Scripts/* /opt/pihole/ 2>/dev/null || true \
 RUN mkdir -p /var/www/html/admin \
     && cp -r /etc/.pihole/web/* /var/www/html/admin/ \
     && cp -r /etc/.pihole/web/* /var/www/html/ \
-    && echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/admin/"><script>window.location.replace("/admin/");</script></head><body><p>Redirecting to <a href="/admin/">Pi-hole Admin</a>...</p></body></html>' > /var/www/html/index.html \
-    && echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=index.lp"><script>window.location.replace("index.lp");</script></head><body><p>Loading <a href="index.lp">Pi-hole Admin</a>...</p></body></html>' > /var/www/html/admin/index.html \
+    && cp /etc/.pihole/web/index.html /var/www/html/index.html \
+    && cp /etc/.pihole/web/index.html /var/www/html/admin/index.html \
     && chown -R pihole:pihole /var/www \
     && chmod -R 0755 /var/www
 

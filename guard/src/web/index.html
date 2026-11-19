@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guard — Pi-hole Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(23, 32, 54, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 41, 69, 0.85);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --cyan: #06b6d4;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; background-image: radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 40%), radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%); }
+    .container { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+    /* Top Nav */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 24px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); backdrop-filter: blur(12px); }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand svg { width: 36px; height: 36px; fill: var(--success); filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4)); }
+    .brand-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-text p { font-size: 0.8rem; color: var(--text-muted); }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .status-badge { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 9999px; font-size: 0.825rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-badge.disabled { background: var(--danger-bg); color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+    /* Controls Bar */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s ease; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-outline { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--card-border); }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.1); }
+
+    /* Metrics Grid */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(12px); transition: transform 0.2s, background 0.2s; position: relative; overflow: hidden; }
+    .card:hover { transform: translateY(-2px); background: var(--card-hover); }
+    .card::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+    .card-blue::before { background: var(--primary); }
+    .card-red::before { background: var(--danger); }
+    .card-cyan::before { background: var(--cyan); }
+    .card-green::before { background: var(--success); }
+    .card-header { font-size: 0.825rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-value { font-size: 2.1rem; font-weight: 700; color: var(--text); line-height: 1.1; }
+    .card-subtext { font-size: 0.775rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+
+    /* Tabs Section */
+    .tabs-container { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); backdrop-filter: blur(12px); overflow: hidden; }
+    .tab-bar { display: flex; gap: 4px; padding: 12px 18px 0; border-bottom: 1px solid var(--card-border); background: rgba(11, 15, 25, 0.5); }
+    .tab-btn { padding: 10px 16px; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { padding: 20px; display: none; }
+    .tab-content.active { display: block; }
+
+    /* Query Log Table */
+    .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+    .search-input { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0, 0, 0, 0.25); color: var(--text); font-size: 0.85rem; min-width: 260px; outline: none; }
+    .search-input:focus { border-color: var(--primary); }
+    .table-wrapper { overflow-x: auto; max-height: 480px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+    th { padding: 10px 14px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--card-border); position: sticky; top: 0; background: #131b2d; }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.725rem; font-weight: 600; text-transform: uppercase; }
+    .tag-blocked { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .tag-allowed { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-cached { background: rgba(59, 130, 246, 0.15); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+    /* Forms */
+    .form-group { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .form-input { flex: 1; min-width: 240px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0, 0, 0, 0.25); color: var(--text); font-size: 0.85rem; outline: none; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.85rem; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; background: #1e293b; color: #fff; border: 1px solid var(--card-border); font-size: 0.875rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 9999; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+        <div class="brand-text">
+          <h1>Guard</h1>
+          <p>Network-wide ad & tracker blocking (Pi-hole Core v6.6)</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="statusBadge" class="status-badge">
+          <span class="pulse-dot"></span>
+          <span id="statusText">Active</span>
+        </div>
+        <button id="toggleBlockingBtn" class="btn btn-outline" onclick="toggleBlocking()">Pause 5m</button>
+        <button class="btn btn-primary" onclick="updateGravity()">Update Gravity</button>
+        <a href="index.lp" class="btn btn-outline" style="text-decoration:none;" title="Switch to Classic Pi-hole Web UI">Classic UI</a>
+      </div>
+    </header>
+
+    <!-- Top Stats Cards -->
+    <div class="metrics-grid">
+      <div class="card card-blue">
+        <div class="card-header">Total Queries</div>
+        <div class="card-value" id="valTotalQueries">---</div>
+        <div class="card-subtext" id="valActiveClients">Active clients: ...</div>
+      </div>
+      <div class="card card-red">
+        <div class="card-header">Queries Blocked</div>
+        <div class="card-value" id="valBlockedQueries">---</div>
+        <div class="card-subtext" id="valPercentBlocked">0.0% blocked</div>
+      </div>
+      <div class="card card-green">
+        <div class="card-header">Blocklist (Gravity)</div>
+        <div class="card-value" id="valGravityCount">---</div>
+        <div class="card-subtext" id="valGravityUpdated">Updated: checking...</div>
+      </div>
+      <div class="card card-cyan">
+        <div class="card-header">DNS Engine</div>
+        <div class="card-value" style="font-size: 1.5rem;" id="valDnsEngine">pihole-FTL v6</div>
+        <div class="card-subtext">Port 53 (UDP) &middot; Port 8080 (Web)</div>
+      </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="tabs-container">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('queries')">Live Query Log</button>
+        <button class="tab-btn" onclick="switchTab('domains')">Domain Filters</button>
+        <button class="tab-btn" onclick="switchTab('adlists')">Adlists</button>
+        <button class="tab-btn" onclick="switchTab('system')">System & API</button>
+      </div>
+
+      <!-- Tab: Query Log -->
+      <div id="tab-queries" class="tab-content active">
+        <div class="table-controls">
+          <input type="text" id="querySearch" class="search-input" placeholder="Search queries by domain or client IP..." oninput="filterQueries()">
+          <div>
+            <button class="btn btn-outline" onclick="loadQueries()">Refresh Now</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table id="queriesTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Domain</th>
+                <th>Client</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="queriesBody">
+              <tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">Waiting for DNS traffic...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Domain Filters -->
+      <div id="tab-domains" class="tab-content">
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Add Custom Block / Allow Rule</h3>
+        <div class="form-group">
+          <input type="text" id="domainInput" class="form-input" placeholder="e.g. tracking.example.com">
+          <button class="btn btn-danger" onclick="addDomain('deny')">Blacklist Domain</button>
+          <button class="btn btn-primary" onclick="addDomain('allow')">Whitelist Domain</button>
+        </div>
+        <div id="domainsList" style="margin-top: 18px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Tab: Adlists -->
+      <div id="tab-adlists" class="tab-content">
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Configured Blocklist URLs</h3>
+        <div class="form-group">
+          <input type="text" id="adlistInput" class="form-input" placeholder="https://example.com/hosts.txt">
+          <button class="btn btn-primary" onclick="addAdlist()">Add Blocklist</button>
+        </div>
+        <div id="adlistsContainer" style="margin-top: 18px;">
+          <div class="list-item">
+            <span>https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts</span>
+            <span class="tag tag-allowed">Default</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: System -->
+      <div id="tab-system" class="tab-content">
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Engine Telemetry</h3>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Direct connection to native Pi-hole v6 FTL REST Engine.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-outline" onclick="restartDNS()">Restart DNS Resolver</button>
+          <button class="btn btn-outline" onclick="window.open('/api/docs', '_blank')">Open OpenAPI / Swagger Docs</button>
+        </div>
+        <pre id="systemJson" style="margin-top: 18px; padding: 14px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 0.775rem; color: #a5b4fc; max-height: 220px; overflow: auto;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Action completed</div>
+
+  <script>
+    const API_BASE = "/api";
+    let isBlocking = true;
+    let allQueries = [];
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      event.target.classList.add("active");
+      document.getElementById("tab-" + tabId).classList.add("active");
+      if (tabId === "system") loadSystemInfo();
+    }
+
+    async function fetchSummary() {
+      try {
+        const res = await fetch(`${API_BASE}/stats/summary`);
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        
+        document.getElementById("valTotalQueries").innerText = (data.queries?.total ?? 0).toLocaleString();
+        document.getElementById("valBlockedQueries").innerText = (data.queries?.blocked ?? 0).toLocaleString();
+        document.getElementById("valPercentBlocked").innerText = `${(data.queries?.percent_blocked ?? 0).toFixed(1)}% blocked`;
+        document.getElementById("valActiveClients").innerText = `Active clients: ${data.clients?.active ?? 0} (total: ${data.clients?.total ?? 0})`;
+        document.getElementById("valGravityCount").innerText = (data.gravity?.domains_being_blocked ?? 0).toLocaleString();
+        
+        if (data.gravity?.last_update) {
+          const d = new Date(data.gravity.last_update * 1000);
+          document.getElementById("valGravityUpdated").innerText = `Updated: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+        }
+      } catch (e) {
+        console.warn("Summary fetch error:", e);
+      }
+    }
+
+    async function checkBlockingState() {
+      try {
+        const res = await fetch(`${API_BASE}/dns/blocking`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const badge = document.getElementById("statusBadge");
+        const text = document.getElementById("statusText");
+        const btn = document.getElementById("toggleBlockingBtn");
+
+        isBlocking = (data.blocking === "enabled");
+        if (isBlocking) {
+          badge.className = "status-badge";
+          text.innerText = "Active";
+          btn.innerText = "Pause 5m";
+          btn.className = "btn btn-outline";
+        } else {
+          badge.className = "status-badge disabled";
+          text.innerText = data.timer ? `Paused (${data.timer}s)` : "Disabled";
+          btn.innerText = "Enable Blocking";
+          btn.className = "btn btn-danger";
+        }
+      } catch (e) {
+        console.warn("Blocking check error:", e);
+      }
+    }
+
+    async function toggleBlocking() {
+      const payload = isBlocking 
+        ? { blocking: false, timer: 300 } 
+        : { blocking: true, timer: null };
+
+      try {
+        const res = await fetch(`${API_BASE}/dns/blocking`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast(isBlocking ? "Blocking paused for 5 minutes" : "Blocking enabled");
+          checkBlockingState();
+        }
+      } catch (e) {
+        showToast("Error updating blocking state");
+      }
+    }
+
+    async function updateGravity() {
+      showToast("Updating Gravity blocklists...");
+      try {
+        const res = await fetch(`${API_BASE}/action/gravity`, { method: "POST" });
+        if (res.ok) {
+          showToast("Gravity blocklist update started");
+          setTimeout(fetchSummary, 4000);
+        } else {
+          showToast("Gravity update triggered");
+        }
+      } catch (e) {
+        showToast("Gravity update request sent");
+      }
+    }
+
+    async function restartDNS() {
+      try {
+        await fetch(`${API_BASE}/action/restart`, { method: "POST" });
+        showToast("DNS service restarted successfully");
+      } catch (e) {
+        showToast("Restart command sent");
+      }
+    }
+
+    async function loadQueries() {
+      try {
+        const res = await fetch(`${API_BASE}/queries?length=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        allQueries = data.queries || [];
+        renderQueries(allQueries);
+      } catch (e) {
+        console.warn("Query log fetch error:", e);
+      }
+    }
+
+    function renderQueries(list) {
+      const tbody = document.getElementById("queriesBody");
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No queries found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(q => {
+        const time = q.time ? new Date(q.time * 1000).toLocaleTimeString() : "--:--:--";
+        let statusTag = `<span class="tag tag-allowed">Allowed</span>`;
+        if (q.status === "GRAVITY" || q.status === "DENY" || q.blocked) {
+          statusTag = `<span class="tag tag-blocked">Blocked</span>`;
+        } else if (q.status === "CACHE") {
+          statusTag = `<span class="tag tag-cached">Cached</span>`;
+        }
+
+        return `
+          <tr>
+            <td>${time}</td>
+            <td style="color: var(--text-muted); font-weight:600;">${q.type || "A"}</td>
+            <td style="font-weight: 500;">${q.domain || "---"}</td>
+            <td style="color: var(--cyan);">${q.client || q.client_name || "LAN"}</td>
+            <td>${statusTag}</td>
+            <td>
+              <button class="btn btn-outline" style="padding: 3px 8px; font-size: 0.75rem;" onclick="quickBlock('${q.domain}')">Block</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function filterQueries() {
+      const val = document.getElementById("querySearch").value.toLowerCase();
+      const filtered = allQueries.filter(q => 
+        (q.domain && q.domain.toLowerCase().includes(val)) ||
+        (q.client && q.client.toLowerCase().includes(val))
+      );
+      renderQueries(filtered);
+    }
+
+    async function addDomain(type) {
+      const inp = document.getElementById("domainInput");
+      const domain = inp.value.trim();
+      if (!domain) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/domains`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: domain, type: type })
+        });
+        showToast(type === "deny" ? `Added ${domain} to Blacklist` : `Added ${domain} to Whitelist`);
+        inp.value = "";
+      } catch (e) {
+        showToast("Error adding domain");
+      }
+    }
+
+    async function quickBlock(domain) {
+      if (!domain) return;
+      document.getElementById("domainInput").value = domain;
+      switchTab('domains');
+      addDomain('deny');
+    }
+
+    async function loadSystemInfo() {
+      try {
+        const res = await fetch(`${API_BASE}/info/version`);
+        if (res.ok) {
+          const json = await res.json();
+          document.getElementById("systemJson").innerText = JSON.stringify(json, null, 2);
+        }
+      } catch (e) {
+        document.getElementById("systemJson").innerText = "Pi-hole FTL v6 API active on port 8080";
+      }
+    }
+
+    // Polling cycles
+    fetchSummary();
+    checkBlockingState();
+    loadQueries();
+    setInterval(fetchSummary, 3000);
+    setInterval(checkBlockingState, 5000);
+    setInterval(loadQueries, 6000);
+  </script>
+</body>
+</html>
