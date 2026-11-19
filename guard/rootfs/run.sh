@@ -22,6 +22,20 @@ if [ -f "${OPTIONS_FILE}" ]; then
     UPSTREAM_DNS=$(jq -r '.upstream_dns // empty' "${OPTIONS_FILE}")
 fi
 
+# Configure dnsmasq to bind only physical network interfaces and skip loopback (lo)
+# This prevents collisions with Home Assistant OS internal resolver on 127.0.0.1:53
+cat << 'EOF' > /etc/dnsmasq.d/02-ha-guard.conf
+bind-interfaces
+except-interface=lo
+EOF
+chown pihole:pihole /etc/dnsmasq.d/02-ha-guard.conf 2>/dev/null || true
+
+# Populate default adlist if none exists
+if [ ! -f "/etc/pihole/adlists.list" ] && [ ! -f "/etc/pihole/gravity.db" ]; then
+    echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" > /etc/pihole/adlists.list
+    chown pihole:pihole /etc/pihole/adlists.list 2>/dev/null || true
+fi
+
 # Run prestart script if available
 if [ -f "/opt/pihole/pihole-FTL-prestart.sh" ]; then
     sh "/opt/pihole/pihole-FTL-prestart.sh" || true
@@ -53,9 +67,8 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Ensure web server listens on port 8080 on all interfaces
-pihole-FTL --config webserver.port 8080 || true
-pihole-FTL --config webserver.interface "" || true
+# Configure Web Interface Port to 8080 (both IPv4 and IPv6)
+pihole-FTL --config webserver.port "8080,[::]:8080" || true
 
 # Initialize Gravity database if missing
 if [ ! -f "/etc/pihole/gravity.db" ]; then
