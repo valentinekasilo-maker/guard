@@ -34,8 +34,8 @@ RUN groupadd -g 999 pihole 2>/dev/null || true \
     && mkdir -p /etc/pihole /var/log/pihole /opt/pihole /etc/.pihole /run/pihole /etc/dnsmasq.d \
     && chown -R pihole:pihole /etc/pihole /var/log/pihole
 
-# Copy repository code
-COPY . /etc/.pihole/
+# Copy source files from the add-on context into /etc/.pihole/
+COPY src/ /etc/.pihole/
 
 # Install scripts into /opt/pihole and CLI wrapper
 RUN cp -r /etc/.pihole/advanced/Scripts/* /opt/pihole/ 2>/dev/null || true \

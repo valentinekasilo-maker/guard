@@ -25,7 +25,6 @@ fi
 # Configure Upstream DNS if provided
 if [ -n "${UPSTREAM_DNS}" ]; then
     echo "[INFO] Configuring upstream DNS: ${UPSTREAM_DNS}"
-    # Convert semicolon or comma separated list to JSON array
     JSON_UPSTREAMS=$(echo "${UPSTREAM_DNS}" | awk -F'[,;]' '{
         printf "["
         for(i=1; i<=NF; i++) {
