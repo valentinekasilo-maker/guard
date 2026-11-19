@@ -4,8 +4,13 @@ set -e
 echo "[INFO] Starting Guard (Pi-hole) for Home Assistant..."
 
 # Ensure core directories exist with proper permissions
-mkdir -p /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d
-chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d 2>/dev/null || true
+mkdir -p /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole
+chmod 0777 /tmp/pihole 2>/dev/null || true
+chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /tmp/pihole 2>/dev/null || true
+chmod -R 0775 /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d 2>/dev/null || true
+
+# Always work inside /etc/pihole so relative listsCache paths succeed
+cd /etc/pihole
 
 # Parse Home Assistant Add-on options if present
 OPTIONS_FILE="/data/options.json"
@@ -25,7 +30,6 @@ fi
 # Configure Upstream DNS if provided
 if [ -n "${UPSTREAM_DNS}" ]; then
     echo "[INFO] Configuring upstream DNS: ${UPSTREAM_DNS}"
-    # Convert semicolon or comma separated list to JSON array
     JSON_UPSTREAMS=$(echo "${UPSTREAM_DNS}" | awk -F'[,;]' '{
         printf "["
         for(i=1; i<=NF; i++) {

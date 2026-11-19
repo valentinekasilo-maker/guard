@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     psmisc \
     util-linux \
-    libcap2-bin \
     sqlite3 \
     coreutils \
     cron \
@@ -28,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gawk \
     && rm -rf /var/lib/apt/lists/*
 
-# Create pihole system user and directories
+# Create pihole system user and skeleton directories
 RUN groupadd -g 999 pihole 2>/dev/null || true \
     && useradd -u 999 -g pihole -d /etc/pihole -s /usr/sbin/nologin pihole 2>/dev/null || true \
     && mkdir -p /etc/pihole /var/log/pihole /opt/pihole /etc/.pihole /run/pihole /etc/dnsmasq.d \
@@ -61,8 +60,7 @@ RUN set -ex; \
     esac; \
     echo "Downloading pihole-FTL for $FTL_ARCH..."; \
     curl -sSL --fail "https://github.com/pi-hole/ftl/releases/latest/download/pihole-FTL-${FTL_ARCH}" -o /usr/bin/pihole-FTL; \
-    chmod 0755 /usr/bin/pihole-FTL; \
-    setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_CHOWN,CAP_SYS_TIME+eip /usr/bin/pihole-FTL || true
+    chmod 0755 /usr/bin/pihole-FTL
 
 # Entrypoint script
 COPY rootfs/run.sh /run.sh

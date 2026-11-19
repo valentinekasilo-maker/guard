@@ -1,10 +1,16 @@
 name: Guard
-version: "6.6.1"
+version: "6.6.2"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
 panel_icon: mdi:shield-check
 host_network: true
+apparmor: false
+privileged:
+  - NET_ADMIN
+  - NET_RAW
+  - SYS_NICE
+  - SYS_TIME
 arch:
   - aarch64
   - amd64
