@@ -10,7 +10,7 @@ chown -R pihole:pihole /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d /t
 chmod -R 0775 /etc/pihole /var/log/pihole /run/pihole /etc/dnsmasq.d 2>/dev/null || true
 
 # Ensure Web Interface files exist in document root and /admin
-mkdir -p /var/www/html /var/www/html/admin /etc/pihole/listsCache
+mkdir -p /var/www/html /var/www/html/admin /var/www/html/scripts/js /etc/pihole/listsCache
 if [ -d "/etc/.pihole/web" ]; then
     cp -r /etc/.pihole/web/* /var/www/html/admin/ 2>/dev/null || true
     cp -r /etc/.pihole/web/* /var/www/html/ 2>/dev/null || true
@@ -18,6 +18,11 @@ fi
 if [ -f "/etc/.pihole/web/index.html" ]; then
     cp /etc/.pihole/web/index.html /var/www/html/index.html
     cp /etc/.pihole/web/index.html /var/www/html/admin/index.html
+fi
+if [ -f "/etc/.pihole/web/scripts/js/dashboard.js" ]; then
+    mkdir -p /var/www/html/scripts/js /var/www/html/admin/scripts/js
+    cp /etc/.pihole/web/scripts/js/dashboard.js /var/www/html/scripts/js/dashboard.js
+    cp /etc/.pihole/web/scripts/js/dashboard.js /var/www/html/admin/scripts/js/dashboard.js
 fi
 rm -f /var/www/html/index.lp 2>/dev/null || true
 chown -R pihole:pihole /var/www /etc/pihole/listsCache 2>/dev/null || true

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guard — Pi-hole Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
+  <link rel="icon" href="img/favicons/favicon.ico">
   <style>
     :root {
       --bg: #0b0f19;
@@ -113,8 +113,8 @@
           <span class="pulse-dot"></span>
           <span id="statusText">Active</span>
         </div>
-        <button id="toggleBlockingBtn" class="btn btn-outline" onclick="toggleBlocking()">Pause 5m</button>
-        <button class="btn btn-primary" onclick="updateGravity()">Update Gravity</button>
+        <button id="toggleBlockingBtn" class="btn btn-outline">Pause 5m</button>
+        <button id="updateGravityBtn" class="btn btn-primary">Update Gravity</button>
         <a href="admin/index.lp" class="btn btn-outline" style="text-decoration:none;" title="Switch to Classic Pi-hole Web UI">Classic UI</a>
       </div>
     </header>
@@ -146,18 +146,18 @@
     <!-- Main Content Tabs -->
     <div class="tabs-container">
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('queries')">Live Query Log</button>
-        <button class="tab-btn" onclick="switchTab('domains')">Domain Filters</button>
-        <button class="tab-btn" onclick="switchTab('adlists')">Adlists</button>
-        <button class="tab-btn" onclick="switchTab('system')">System & API</button>
+        <button class="tab-btn active" data-tab="queries">Live Query Log</button>
+        <button class="tab-btn" data-tab="domains">Domain Filters</button>
+        <button class="tab-btn" data-tab="adlists">Adlists</button>
+        <button class="tab-btn" data-tab="system">System & API</button>
       </div>
 
       <!-- Tab: Query Log -->
       <div id="tab-queries" class="tab-content active">
         <div class="table-controls">
-          <input type="text" id="querySearch" class="search-input" placeholder="Search queries by domain or client IP..." oninput="filterQueries()">
+          <input type="text" id="querySearch" class="search-input" placeholder="Search queries by domain or client IP...">
           <div>
-            <button class="btn btn-outline" onclick="loadQueries()">Refresh Now</button>
+            <button id="refreshQueriesBtn" class="btn btn-outline">Refresh Now</button>
           </div>
         </div>
         <div class="table-wrapper">
@@ -184,8 +184,8 @@
         <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Add Custom Block / Allow Rule</h3>
         <div class="form-group">
           <input type="text" id="domainInput" class="form-input" placeholder="e.g. tracking.example.com">
-          <button class="btn btn-danger" onclick="addDomain('deny')">Blacklist Domain</button>
-          <button class="btn btn-primary" onclick="addDomain('allow')">Whitelist Domain</button>
+          <button id="addBlacklistBtn" class="btn btn-danger">Blacklist Domain</button>
+          <button id="addWhitelistBtn" class="btn btn-primary">Whitelist Domain</button>
         </div>
         <div id="domainsList" style="margin-top: 18px;">
           <!-- Dynamically populated -->
@@ -197,7 +197,7 @@
         <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Configured Blocklist URLs</h3>
         <div class="form-group">
           <input type="text" id="adlistInput" class="form-input" placeholder="https://example.com/hosts.txt">
-          <button class="btn btn-primary" onclick="addAdlist()">Add Blocklist</button>
+          <button id="addAdlistBtn" class="btn btn-primary">Add Blocklist</button>
         </div>
         <div id="adlistsContainer" style="margin-top: 18px;">
           <div class="list-item">
@@ -212,8 +212,8 @@
         <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Engine Telemetry</h3>
         <p style="color: var(--text-muted); margin-bottom: 16px;">Direct connection to native Pi-hole v6 FTL REST Engine.</p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button class="btn btn-outline" onclick="restartDNS()">Restart DNS Resolver</button>
-          <button class="btn btn-outline" onclick="window.open(API_BASE + '/docs', '_blank')">Open OpenAPI / Swagger Docs</button>
+          <button id="restartDnsBtn" class="btn btn-outline">Restart DNS Resolver</button>
+          <button id="openApiBtn" class="btn btn-outline">Open OpenAPI / Swagger Docs</button>
         </div>
         <pre id="systemJson" style="margin-top: 18px; padding: 14px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 0.775rem; color: #a5b4fc; max-height: 220px; overflow: auto;"></pre>
       </div>
@@ -222,274 +222,7 @@
 
   <div id="toast">Action completed</div>
 
-  <script>
-    function getApiBase() {
-      const path = window.location.pathname;
-      const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^/]+)/);
-      if (ingressMatch) {
-        return ingressMatch[1] + "/api";
-      }
-      return "/api";
-    }
-
-    const API_BASE = getApiBase();
-    let isBlocking = true;
-    let allQueries = [];
-    let sid = "";
-
-    function showToast(msg) {
-      const toast = document.getElementById("toast");
-      toast.innerText = msg;
-      toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 3000);
-    }
-
-    async function ensureAuth() {
-      if (sid) return sid;
-      try {
-        const res = await fetch(`${API_BASE}/auth`);
-        const data = await res.json();
-        if (data?.session?.valid && data?.session?.sid) {
-          sid = data.session.sid;
-          return sid;
-        }
-      } catch (e) {}
-
-      for (const pwd of ["guard", "", localStorage.getItem("pihole_password") || ""]) {
-        try {
-          const res = await fetch(`${API_BASE}/auth`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: pwd })
-          });
-          const data = await res.json();
-          if (data?.session?.valid && data?.session?.sid) {
-            sid = data.session.sid;
-            return sid;
-          }
-        } catch (e) {}
-      }
-      return "";
-    }
-
-    async function apiFetch(path, options = {}) {
-      await ensureAuth();
-      options.headers = options.headers || {};
-      options.headers["Accept"] = "application/json";
-      if (sid) {
-        options.headers["sid"] = sid;
-        options.headers["X-FTL-SID"] = sid;
-      }
-      let res = await fetch(`${API_BASE}${path}`, options);
-      if (res.status === 401 || res.status === 403) {
-        sid = "";
-        await ensureAuth();
-        if (sid) {
-          options.headers["sid"] = sid;
-          options.headers["X-FTL-SID"] = sid;
-          res = await fetch(`${API_BASE}${path}`, options);
-        }
-      }
-      return res;
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-      event.target.classList.add("active");
-      document.getElementById("tab-" + tabId).classList.add("active");
-      if (tabId === "system") loadSystemInfo();
-    }
-
-    async function fetchSummary() {
-      try {
-        const res = await apiFetch("/stats/summary");
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
-        
-        document.getElementById("valTotalQueries").innerText = (data.queries?.total ?? 0).toLocaleString();
-        document.getElementById("valBlockedQueries").innerText = (data.queries?.blocked ?? 0).toLocaleString();
-        document.getElementById("valPercentBlocked").innerText = `${(data.queries?.percent_blocked ?? 0).toFixed(1)}% blocked`;
-        document.getElementById("valActiveClients").innerText = `Active clients: ${data.clients?.active ?? 0} (total: ${data.clients?.total ?? 0})`;
-        document.getElementById("valGravityCount").innerText = (data.gravity?.domains_being_blocked ?? 0).toLocaleString();
-        
-        if (data.gravity?.last_update) {
-          const d = new Date(data.gravity.last_update * 1000);
-          document.getElementById("valGravityUpdated").innerText = `Updated: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-        }
-      } catch (e) {
-        console.warn("Summary fetch error:", e);
-      }
-    }
-
-    async function checkBlockingState() {
-      try {
-        const res = await apiFetch("/dns/blocking");
-        if (!res.ok) return;
-        const data = await res.json();
-        const badge = document.getElementById("statusBadge");
-        const text = document.getElementById("statusText");
-        const btn = document.getElementById("toggleBlockingBtn");
-
-        isBlocking = (data.blocking === "enabled");
-        if (isBlocking) {
-          badge.className = "status-badge";
-          text.innerText = "Active";
-          btn.innerText = "Pause 5m";
-          btn.className = "btn btn-outline";
-        } else {
-          badge.className = "status-badge disabled";
-          text.innerText = data.timer ? `Paused (${data.timer}s)` : "Disabled";
-          btn.innerText = "Enable Blocking";
-          btn.className = "btn btn-danger";
-        }
-      } catch (e) {
-        console.warn("Blocking check error:", e);
-      }
-    }
-
-    async function toggleBlocking() {
-      const payload = isBlocking 
-        ? { blocking: false, timer: 300 } 
-        : { blocking: true, timer: null };
-
-      try {
-        const res = await apiFetch("/dns/blocking", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          showToast(isBlocking ? "Blocking paused for 5 minutes" : "Blocking enabled");
-          checkBlockingState();
-        }
-      } catch (e) {
-        showToast("Error updating blocking state");
-      }
-    }
-
-    async function updateGravity() {
-      showToast("Updating Gravity blocklists...");
-      try {
-        const res = await apiFetch("/action/gravity", { method: "POST" });
-        if (res.ok) {
-          showToast("Gravity blocklist update started");
-          setTimeout(fetchSummary, 4000);
-        } else {
-          showToast("Gravity update triggered");
-        }
-      } catch (e) {
-        showToast("Gravity update request sent");
-      }
-    }
-
-    async function restartDNS() {
-      try {
-        await apiFetch("/action/restart", { method: "POST" });
-        showToast("DNS service restarted successfully");
-      } catch (e) {
-        showToast("Restart command sent");
-      }
-    }
-
-    async function loadQueries() {
-      try {
-        const res = await apiFetch("/queries?length=50");
-        if (!res.ok) return;
-        const data = await res.json();
-        allQueries = data.queries || [];
-        renderQueries(allQueries);
-      } catch (e) {
-        console.warn("Query log fetch error:", e);
-      }
-    }
-
-    function renderQueries(list) {
-      const tbody = document.getElementById("queriesBody");
-      if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No queries found</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = list.map(q => {
-        const time = q.time ? new Date(q.time * 1000).toLocaleTimeString() : "--:--:--";
-        let statusTag = `<span class="tag tag-allowed">Allowed</span>`;
-        if (q.status === "GRAVITY" || q.status === "DENY" || q.blocked) {
-          statusTag = `<span class="tag tag-blocked">Blocked</span>`;
-        } else if (q.status === "CACHE") {
-          statusTag = `<span class="tag tag-cached">Cached</span>`;
-        }
-
-        return `
-          <tr>
-            <td>${time}</td>
-            <td style="color: var(--text-muted); font-weight:600;">${q.type || "A"}</td>
-            <td style="font-weight: 500;">${q.domain || "---"}</td>
-            <td style="color: var(--cyan);">${q.client || q.client_name || "LAN"}</td>
-            <td>${statusTag}</td>
-            <td>
-              <button class="btn btn-outline" style="padding: 3px 8px; font-size: 0.75rem;" onclick="quickBlock('${q.domain}')">Block</button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function filterQueries() {
-      const val = document.getElementById("querySearch").value.toLowerCase();
-      const filtered = allQueries.filter(q => 
-        (q.domain && q.domain.toLowerCase().includes(val)) ||
-        (q.client && q.client.toLowerCase().includes(val))
-      );
-      renderQueries(filtered);
-    }
-
-    async function addDomain(type) {
-      const inp = document.getElementById("domainInput");
-      const domain = inp.value.trim();
-      if (!domain) return;
-
-      try {
-        const res = await apiFetch("/domains", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: domain, type: type })
-        });
-        showToast(type === "deny" ? `Added ${domain} to Blacklist` : `Added ${domain} to Whitelist`);
-        inp.value = "";
-      } catch (e) {
-        showToast("Error adding domain");
-      }
-    }
-
-    async function quickBlock(domain) {
-      if (!domain) return;
-      document.getElementById("domainInput").value = domain;
-      switchTab('domains');
-      addDomain('deny');
-    }
-
-    async function loadSystemInfo() {
-      try {
-        const res = await apiFetch("/info/version");
-        if (res.ok) {
-          const json = await res.json();
-          document.getElementById("systemJson").innerText = JSON.stringify(json, null, 2);
-        }
-      } catch (e) {
-        document.getElementById("systemJson").innerText = "Pi-hole FTL v6 API active on port 8080";
-      }
-    }
-
-    // Polling cycles
-    ensureAuth().then(() => {
-      fetchSummary();
-      checkBlockingState();
-      loadQueries();
-    });
-    setInterval(fetchSummary, 3000);
-    setInterval(checkBlockingState, 5000);
-    setInterval(loadQueries, 6000);
-  </script>
+  <!-- CSP-compliant external script -->
+  <script src="scripts/js/dashboard.js"></script>
 </body>
 </html>
