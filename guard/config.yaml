@@ -1,5 +1,5 @@
 name: Guard
-version: "6.6.9"
+version: "6.7.0"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
@@ -19,15 +19,16 @@ arch:
 startup: services
 boot: auto
 init: false
+ingress: true
+ingress_port: 0
 ports:
   8080/tcp: 8080
   8088/tcp: 8088
   4865/tcp: 4865
 ports_description:
-  8080/tcp: "Primary web administration interface"
-  8088/tcp: "Secondary web administration interface"
-  4865/tcp: "Alternative web administration interface"
-webui: "http://[HOST]:[PORT:8080]/admin/"
+  8080/tcp: "Primary web administration interface (direct LAN)"
+  8088/tcp: "Secondary web administration interface (direct LAN)"
+  4865/tcp: "Alternative web administration interface (direct LAN)"
 schema:
   password: str?
   upstream_dns: str?

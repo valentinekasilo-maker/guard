@@ -92,8 +92,22 @@ else
     pihole-FTL --config webserver.api.password "" || true
 fi
 
-# Configure Web Interface Ports: 8080, 8088, 4865 (IPv4 and IPv6) with graceful binding
-pihole-FTL --config webserver.port "8080o,8088o,4865o,[::]:8080o,[::]:8088o,[::]:4865o" || true
+# Query Home Assistant Supervisor for dynamic Ingress port if present
+INGRESS_PORT=""
+if [ -n "${SUPERVISOR_TOKEN}" ]; then
+    echo "[INFO] Querying Home Assistant Supervisor for Ingress port..."
+    INGRESS_PORT=$(curl -sSL -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" http://supervisor/addons/self/info 2>/dev/null | jq --raw-output '.data.ingress_port // empty' 2>/dev/null || true)
+fi
+
+PORTS="8080o,8088o,4865o"
+if [ -n "${INGRESS_PORT}" ] && [ "${INGRESS_PORT}" != "null" ] && [ "${INGRESS_PORT}" != "0" ]; then
+    echo "[INFO] Detected Home Assistant Ingress port: ${INGRESS_PORT}"
+    PORTS="${INGRESS_PORT}o,${PORTS}"
+fi
+PORTS="${PORTS},[::]:8080o"
+
+echo "[INFO] Configuring webserver ports: ${PORTS}"
+pihole-FTL --config webserver.port "${PORTS}" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
 pihole-FTL --config webserver.paths.webhome "/admin/" || true
 pihole-FTL --config webserver.serve_all true || true

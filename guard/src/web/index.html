@@ -223,7 +223,16 @@
   <div id="toast">Action completed</div>
 
   <script>
-    const API_BASE = "/api";
+    function getApiBase() {
+      const path = window.location.pathname;
+      const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^/]+)/);
+      if (ingressMatch) {
+        return ingressMatch[1] + "/api";
+      }
+      return "/api";
+    }
+
+    const API_BASE = getApiBase();
     let isBlocking = true;
     let allQueries = [];
     let sid = "";
