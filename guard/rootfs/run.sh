@@ -109,7 +109,7 @@ fi
 echo "[INFO] Configuring webserver ports: ${PORTS}"
 pihole-FTL --config webserver.port "${PORTS}" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
-pihole-FTL --config webserver.paths.webhome "/" || true
+pihole-FTL --config webserver.paths.webhome "index.html" || true
 pihole-FTL --config webserver.serve_all true || true
 pihole-FTL --config webserver.acl "" || true
 
