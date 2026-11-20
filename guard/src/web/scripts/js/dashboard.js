@@ -232,19 +232,23 @@
     tbody.innerHTML = list.map(q => {
       const time = q.time ? new Date(q.time * 1000).toLocaleTimeString() : "--:--:--";
       let statusTag = `<span class="tag tag-allowed">Allowed</span>`;
-      if (q.status === "GRAVITY" || q.status === "DENY" || q.blocked) {
+      if (q.status === "GRAVITY" || q.status === "DENY" || q.status === "REGEX" || q.status === "DENYLIST" || q.blocked) {
         statusTag = `<span class="tag tag-blocked">Blocked</span>`;
       } else if (q.status === "CACHE") {
         statusTag = `<span class="tag tag-cached">Cached</span>`;
       }
 
       const domain = q.domain || "---";
+      const clientStr = (typeof q.client === 'object' && q.client !== null)
+        ? (q.client.name || q.client.ip || "LAN")
+        : (q.client || q.client_name || "LAN");
+
       return `
         <tr>
           <td>${time}</td>
           <td style="color: var(--text-muted); font-weight:600;">${q.type || "A"}</td>
           <td style="font-weight: 500;">${domain}</td>
-          <td style="color: var(--cyan);">${q.client || q.client_name || "LAN"}</td>
+          <td style="color: var(--cyan);">${clientStr}</td>
           <td>${statusTag}</td>
           <td>
             <button class="btn btn-outline btn-quick-block" style="padding: 3px 8px; font-size: 0.75rem;" data-domain="${domain}">Block</button>
@@ -264,10 +268,11 @@
 
   function filterQueries() {
     const val = (document.getElementById("querySearch")?.value || "").toLowerCase();
-    const filtered = allQueries.filter(q => 
-      (q.domain && q.domain.toLowerCase().includes(val)) ||
-      (q.client && q.client.toLowerCase().includes(val))
-    );
+    const filtered = allQueries.filter(q => {
+      const d = (q.domain || "").toLowerCase();
+      const c = (typeof q.client === 'object' && q.client !== null ? (q.client.name || q.client.ip || "") : (q.client || "")).toLowerCase();
+      return d.includes(val) || c.includes(val);
+    });
     renderQueries(filtered);
   }
 
@@ -398,3 +403,4 @@
     init();
   }
 })();
+
