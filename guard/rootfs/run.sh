@@ -99,8 +99,8 @@ if [ -n "${SUPERVISOR_TOKEN}" ]; then
     INGRESS_PORT=$(curl -sSL -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" http://supervisor/addons/self/info 2>/dev/null | jq --raw-output '.data.ingress_port // empty' 2>/dev/null || true)
 fi
 
-PORTS="8080o,8088o,4865o,[::]:8080o"
-if [ -n "${INGRESS_PORT}" ] && [ "${INGRESS_PORT}" != "null" ] && [ "${INGRESS_PORT}" != "0" ] && [ "${INGRESS_PORT}" != "8080" ]; then
+PORTS="8085o,8088o,4865o,[::]:8085o"
+if [ -n "${INGRESS_PORT}" ] && [ "${INGRESS_PORT}" != "null" ] && [ "${INGRESS_PORT}" != "0" ] && [ "${INGRESS_PORT}" != "8085" ]; then
     echo "[INFO] Detected separate Home Assistant Ingress port: ${INGRESS_PORT}"
     PORTS="${INGRESS_PORT}o,${PORTS}"
 fi
