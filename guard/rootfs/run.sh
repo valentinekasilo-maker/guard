@@ -53,7 +53,13 @@ chown pihole:pihole /etc/dnsmasq.d/02-ha-guard.conf 2>/dev/null || true
 
 # Populate default adlist if none exists
 if [ ! -f "/etc/pihole/adlists.list" ] && [ ! -f "/etc/pihole/gravity.db" ]; then
-    echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" > /etc/pihole/adlists.list
+    cat << 'EOF' > /etc/pihole/adlists.list
+https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+https://adaway.org/hosts.txt
+https://v.firebog.net/hosts/AdguardDNS.txt
+https://v.firebog.net/hosts/Easyprivacy.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/multi.txt
+EOF
     chown pihole:pihole /etc/pihole/adlists.list 2>/dev/null || true
 fi
 

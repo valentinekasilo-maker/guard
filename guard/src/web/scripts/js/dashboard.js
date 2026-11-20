@@ -91,6 +91,7 @@
 
     if (tabId === "system") loadSystemInfo();
     if (tabId === "domains") loadDomains();
+    if (tabId === "clients") loadClients();
   }
 
   async function fetchSummary() {
@@ -210,7 +211,7 @@
 
   async function loadQueries() {
     try {
-      const res = await apiFetch("/queries?length=50");
+      const res = await apiFetch("/queries?length=100");
       if (!res.ok) return;
       const data = await res.json();
       allQueries = data.queries || [];
@@ -268,12 +269,55 @@
 
   function filterQueries() {
     const val = (document.getElementById("querySearch")?.value || "").toLowerCase();
+    const selClient = (document.getElementById("clientFilter")?.value || "").toLowerCase();
     const filtered = allQueries.filter(q => {
       const d = (q.domain || "").toLowerCase();
       const c = (typeof q.client === 'object' && q.client !== null ? (q.client.name || q.client.ip || "") : (q.client || "")).toLowerCase();
-      return d.includes(val) || c.includes(val);
+      const matchSearch = !val || d.includes(val) || c.includes(val);
+      const matchClient = !selClient || c.includes(selClient);
+      return matchSearch && matchClient;
     });
     renderQueries(filtered);
+  }
+
+  async function loadClients() {
+    try {
+      const res = await apiFetch("/stats/top_clients");
+      if (!res.ok) return;
+      const data = await res.json();
+      const container = document.getElementById("clientsList");
+      const filterSelect = document.getElementById("clientFilter");
+
+      const clients = data.clients || [];
+      if (filterSelect) {
+        const currentSelected = filterSelect.value;
+        filterSelect.innerHTML = `<option value="">All Devices</option>` + clients.map(c => {
+          const val = c.ip || c.name || "";
+          const lbl = c.name ? `${c.name} (${c.ip})` : c.ip;
+          return `<option value="${val}" ${currentSelected === val ? 'selected' : ''}>${lbl} [${c.count} queries]</option>`;
+        }).join("");
+      }
+
+      if (!container) return;
+      if (clients.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem;">No active devices detected yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = clients.map(c => `
+        <div class="list-item" style="padding: 12px 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 6px;">
+          <div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--cyan);">${c.name || c.ip}</div>
+            <div style="font-size: 0.775rem; color: var(--text-muted);">${c.ip !== (c.name || '') ? c.ip : 'LAN Device'}</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="tag tag-allowed" style="font-size: 0.8rem; padding: 4px 10px;">${(c.count || 0).toLocaleString()} queries</span>
+          </div>
+        </div>
+      `).join("");
+    } catch (e) {
+      console.warn("Clients fetch error:", e);
+    }
   }
 
   async function addDomain(type) {
@@ -373,6 +417,9 @@
     const inpSearch = document.getElementById("querySearch");
     if (inpSearch) inpSearch.addEventListener("input", filterQueries);
 
+    const selClient = document.getElementById("clientFilter");
+    if (selClient) selClient.addEventListener("change", filterQueries);
+
     const btnBlacklist = document.getElementById("addBlacklistBtn");
     if (btnBlacklist) btnBlacklist.addEventListener("click", () => addDomain("deny"));
 
@@ -390,11 +437,13 @@
       fetchSummary();
       checkBlockingState();
       loadQueries();
+      loadClients();
     });
 
     setInterval(fetchSummary, 3000);
     setInterval(checkBlockingState, 5000);
     setInterval(loadQueries, 6000);
+    setInterval(loadClients, 10000);
   }
 
   if (document.readyState === "loading") {

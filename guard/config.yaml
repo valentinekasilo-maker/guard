@@ -1,5 +1,5 @@
 name: Guard
-version: "6.7.8"
+version: "6.7.9"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"

@@ -147,6 +147,7 @@
     <div class="tabs-container">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="queries">Live Query Log</button>
+        <button class="tab-btn" data-tab="clients">Connected Devices</button>
         <button class="tab-btn" data-tab="domains">Domain Filters</button>
         <button class="tab-btn" data-tab="adlists">Adlists</button>
         <button class="tab-btn" data-tab="system">System & API</button>
@@ -155,7 +156,12 @@
       <!-- Tab: Query Log -->
       <div id="tab-queries" class="tab-content active">
         <div class="table-controls">
-          <input type="text" id="querySearch" class="search-input" placeholder="Search queries by domain or client IP...">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1;">
+            <input type="text" id="querySearch" class="search-input" placeholder="Search queries by domain or client IP...">
+            <select id="clientFilter" class="search-input" style="min-width: 170px;">
+              <option value="">All Devices</option>
+            </select>
+          </div>
           <div>
             <button id="refreshQueriesBtn" class="btn btn-outline">Refresh Now</button>
           </div>
@@ -176,6 +182,15 @@
               <tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">Waiting for DNS traffic...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Tab: Connected Devices -->
+      <div id="tab-clients" class="tab-content">
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Discovered Wi-Fi & LAN Devices</h3>
+        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.85rem;">All devices currently routing DNS through Guard across your home network.</p>
+        <div id="clientsList" style="display: flex; flex-direction: column; gap: 8px;">
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Loading devices...</p>
         </div>
       </div>
 
