@@ -19,6 +19,7 @@ if [ -f "/etc/.pihole/web/index.html" ]; then
     cp /etc/.pihole/web/index.html /var/www/html/index.html
     cp /etc/.pihole/web/index.html /var/www/html/admin/index.html
 fi
+rm -f /var/www/html/index.lp 2>/dev/null || true
 chown -R pihole:pihole /var/www /etc/pihole/listsCache 2>/dev/null || true
 chmod -R 0755 /var/www /etc/pihole/listsCache 2>/dev/null || true
 
