@@ -1,5 +1,5 @@
 name: Guard
-version: "6.7.1"
+version: "6.7.2"
 slug: guard
 description: "Network-wide ad and tracker blocking powered by Pi-hole"
 url: "https://github.com/valentinekasilo-maker/guard"
@@ -20,8 +20,8 @@ startup: services
 boot: auto
 init: false
 ingress: true
-ingress_port: 0
-ingress_entry: "/"
+ingress_port: 8080
+hassio_api: true
 ports:
   8080/tcp: 8080
   8088/tcp: 8088

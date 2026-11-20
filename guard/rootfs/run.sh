@@ -99,12 +99,11 @@ if [ -n "${SUPERVISOR_TOKEN}" ]; then
     INGRESS_PORT=$(curl -sSL -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" http://supervisor/addons/self/info 2>/dev/null | jq --raw-output '.data.ingress_port // empty' 2>/dev/null || true)
 fi
 
-PORTS="8080o,8088o,4865o"
-if [ -n "${INGRESS_PORT}" ] && [ "${INGRESS_PORT}" != "null" ] && [ "${INGRESS_PORT}" != "0" ]; then
-    echo "[INFO] Detected Home Assistant Ingress port: ${INGRESS_PORT}"
+PORTS="8080o,8088o,4865o,[::]:8080o"
+if [ -n "${INGRESS_PORT}" ] && [ "${INGRESS_PORT}" != "null" ] && [ "${INGRESS_PORT}" != "0" ] && [ "${INGRESS_PORT}" != "8080" ]; then
+    echo "[INFO] Detected separate Home Assistant Ingress port: ${INGRESS_PORT}"
     PORTS="${INGRESS_PORT}o,${PORTS}"
 fi
-PORTS="${PORTS},[::]:8080o"
 
 echo "[INFO] Configuring webserver ports: ${PORTS}"
 pihole-FTL --config webserver.port "${PORTS}" || true
