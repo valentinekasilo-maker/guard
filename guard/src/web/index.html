@@ -213,7 +213,7 @@
         <p style="color: var(--text-muted); margin-bottom: 16px;">Direct connection to native Pi-hole v6 FTL REST Engine.</p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
           <button class="btn btn-outline" onclick="restartDNS()">Restart DNS Resolver</button>
-          <button class="btn btn-outline" onclick="window.open('/api/docs', '_blank')">Open OpenAPI / Swagger Docs</button>
+          <button class="btn btn-outline" onclick="window.open(API_BASE + '/docs', '_blank')">Open OpenAPI / Swagger Docs</button>
         </div>
         <pre id="systemJson" style="margin-top: 18px; padding: 14px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 0.775rem; color: #a5b4fc; max-height: 220px; overflow: auto;"></pre>
       </div>
@@ -255,18 +255,20 @@
         }
       } catch (e) {}
 
-      try {
-        const res = await fetch(`${API_BASE}/auth`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: "" })
-        });
-        const data = await res.json();
-        if (data?.session?.sid) {
-          sid = data.session.sid;
-          return sid;
-        }
-      } catch (e) {}
+      for (const pwd of ["guard", "", localStorage.getItem("pihole_password") || ""]) {
+        try {
+          const res = await fetch(`${API_BASE}/auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pwd })
+          });
+          const data = await res.json();
+          if (data?.session?.valid && data?.session?.sid) {
+            sid = data.session.sid;
+            return sid;
+          }
+        } catch (e) {}
+      }
       return "";
     }
 

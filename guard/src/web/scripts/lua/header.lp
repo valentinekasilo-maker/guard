@@ -11,6 +11,9 @@
 starttime = mg.time(true)
 hostname = pihole.hostname()
 webhome = pihole.webhome()
+if webhome == "/" or webhome == "/admin/" then
+    webhome = ""
+end
 theme = pihole.webtheme()
 
 -- Get name of script by matching whatever is after the last "/" in the URI

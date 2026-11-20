@@ -88,8 +88,8 @@ if [ -n "${PASSWORD}" ]; then
     echo "[INFO] Setting custom web administration password..."
     pihole-FTL --config webserver.api.password "${PASSWORD}" || true
 else
-    echo "[INFO] No web password set; web admin password protection disabled."
-    pihole-FTL --config webserver.api.password "" || true
+    echo "[INFO] No web password specified; using default password 'guard' for Ingress API access."
+    pihole-FTL --config webserver.api.password "guard" || true
 fi
 
 # Query Home Assistant Supervisor for dynamic Ingress port if present
@@ -109,7 +109,7 @@ PORTS="${PORTS},[::]:8080o"
 echo "[INFO] Configuring webserver ports: ${PORTS}"
 pihole-FTL --config webserver.port "${PORTS}" || true
 pihole-FTL --config webserver.paths.webroot "/var/www/html" || true
-pihole-FTL --config webserver.paths.webhome "/admin/" || true
+pihole-FTL --config webserver.paths.webhome "/" || true
 pihole-FTL --config webserver.serve_all true || true
 pihole-FTL --config webserver.acl "" || true
 
